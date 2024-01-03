@@ -6,6 +6,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.redis.core.RedisHash;
 
 import java.time.Instant;
 
@@ -16,10 +17,13 @@ import java.time.Instant;
 * Jackson 역직렬화 매커니즘이 이를 무시하도록 함
 * @Id: 어노테이션이 달린 멤버 변수가 DB 고유 식별자를 가지도록 지정
 * @JsonProperty: 멤버 변수를 다른 이름이 붙은 JSON 필드와 연결
+* @RedisHash: 레디스 해시에 저장될 aggregate root임을 표시,
+* @RedisHash는 @Entity 어노테이션이 JPA 객체에 수행하는 기능과 유사한 기능을 수행
 * */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@RedisHash
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Aircraft {
     @Id
@@ -46,45 +50,6 @@ public class Aircraft {
     @JsonProperty("bds40_seen_time")
     private Instant bds40SeenTime;
 
-    public String getLastSeenTime() {
-        return lastSeenTime.toString();
-    }
-
-    /*Instant: 날짜+시간+UTC
-    * LocalDateTime: 날짜+시간
-    * ZonedDateTime: 날짜+시간+timezone
-    * 글로벌 서비스 개발 시, Instant 혹은 ZonedDateTime 클래스 사용
-    * 단일 리전 서비스 개발 시, LocalDateTime 사용
-    * */
-    public void setLastSeenTime(String lastSeenTime) {
-        if (null != lastSeenTime) {
-            this.lastSeenTime = Instant.parse(lastSeenTime);
-        } else {
-            this.lastSeenTime = Instant.ofEpochSecond(0);
-        }
-    }
-
-    public String getPosUpdateTime() {
-        return posUpdateTime.toString();
-    }
-
-    public void setPosUpdateTime(String posUpdateTime) {
-        if (null != posUpdateTime) {
-            this.posUpdateTime = Instant.parse(posUpdateTime);
-        } else {
-            this.posUpdateTime = Instant.ofEpochSecond(0);
-        }
-    }
-
-    public String getBds40SeenTime() {
-        return this.bds40SeenTime.toString();
-    }
-
-    public void setBds40SeenTime(String bds40SeenTime) {
-        if (null != bds40SeenTime) {
-            this.bds40SeenTime = Instant.parse(bds40SeenTime);
-        } else {
-            this.bds40SeenTime = Instant.ofEpochSecond(0);
-        }
-    }
+    /*Instant 타입 멤버 변수를 위해 필요했던 명시적 접근자와 변경자 제거
+    * 스프링 데이터의 repository 지원에 있는 변환기가 복잡한 타입 변환을 쉽게 처리하기 때문에 */
 }

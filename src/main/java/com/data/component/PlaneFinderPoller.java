@@ -1,8 +1,8 @@
 package com.data.component;
 
 import com.data.domain.Aircraft;
+import com.data.repository.AircraftRepository;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
-import org.springframework.data.redis.core.RedisOperations;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -18,12 +18,12 @@ public class PlaneFinderPoller {
     private WebClient client = WebClient.create("http://localhost:7634/aircraft");
 
     private final RedisConnectionFactory connectionFactory;
-    private final RedisOperations<String, Aircraft> redisOperations;
+    private final AircraftRepository repository;
 
-    PlaneFinderPoller(RedisConnectionFactory connectionFactory,
-                      RedisOperations<String, Aircraft> redisOperations) {
+    public PlaneFinderPoller(RedisConnectionFactory connectionFactory,
+                      AircraftRepository repository) {
         this.connectionFactory = connectionFactory;
-        this.redisOperations = redisOperations;
+        this.repository = repository;
     }
 
     @Scheduled(fixedRate = 1000)  // 폴링 빈도 1,000ms당 한번(초당 1번)
@@ -46,16 +46,12 @@ public class PlaneFinderPoller {
                 .bodyToFlux(Aircraft.class)
                 .filter(plane -> !plane.getReg().isEmpty())
                 .toStream()
-                .forEach(ac -> redisOperations.opsForValue().set(ac.getReg(), ac));
+                .forEach(repository::save);
 
         /*최신 캡처의 결과를 보고하는 선언문
         * 레디스에 정의된 작업 몇 가지를 활용해 모든 키를 조회하고,
         * 각각의 키로 해당 항공기 값을 조회한 다음 출력
         * */
-        redisOperations.opsForValue()
-                .getOperations()
-                .keys("*")
-                .forEach(ac ->
-                        System.out.println(redisOperations.opsForValue().get(ac)));
+        repository.findAll().forEach(System.out::println);
     }
 }
